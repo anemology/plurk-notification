@@ -138,8 +138,8 @@ def format_time_to_offset(time: datetime) -> str:
 
 
 def change_timezone_local(time: datetime) -> str:
-    """change datetime to local time string"""
-    local_time = time.replace(tzinfo=timezone.utc).astimezone(tz=None)
+    """change datetime to local time string (UTC+8)"""
+    local_time = time.replace(tzinfo=timezone.utc).astimezone(tz=timezone(timedelta(hours=8)))
     return local_time.strftime("%Y-%m-%d %H:%M:%S")
 
 
