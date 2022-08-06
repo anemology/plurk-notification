@@ -14,21 +14,24 @@ from telegram import Bot, Update
 TOKEN = "{telegram_token}"
 MY_CHAT_ID = "{your_chat_id}"
 BASE_URL = "https://www.plurk.com"
-PLURK_UID = 000000
+plurk_ids = [000000]
 
 
 def lambda_handler(event, context):
     bot = Bot(TOKEN)
-    plurk = Plurk()
 
     # EventBridge (CloudWatch Events)
     # 定期執行的排程
     if event.get("source") == "aws.events":
         print("Check from AWS EventBridge.")
 
-        if plurk.get_latest_plurk():
-            print("Have new plurks!")
-            send_message(bot, "\n".join(plurk.new_plurks))
+        for i in plurk_ids:
+            e_plurk = Plurk(i)
+
+            if e_plurk.get_latest_plurk():
+                print("Have new plurks!")
+                for p in e_plurk.new_plurks:
+                    send_message(bot, p)
 
         return
 
@@ -42,6 +45,8 @@ def lambda_handler(event, context):
     update = Update.de_json(json.loads(event.get("body")), bot)
     chat_id = update.message.chat.id
     text = update.message.text
+
+    plurk = Plurk(plurk_ids[0])
 
     response_text = text
     if text == "/start":
@@ -65,8 +70,8 @@ def lambda_handler(event, context):
 
 
 class Plurk:
-    def __init__(self):
-        self.user_id = PLURK_UID
+    def __init__(self, user_id):
+        self.user_id = user_id
         # set offset to now for first time
         self.offset = format_time_to_offset(datetime.utcnow())
         self.new_plurks = []
