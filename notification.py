@@ -118,7 +118,7 @@ class Plurk:
                 post_time = change_timezone_local(posted_time_utc)
                 plurk_content = plurk["content_raw"].replace("\n", " ")
 
-                self.new_plurks.append(f"{post_time} {plurk_content}")
+                self.new_plurks.append(f"{post_time} {plurk_content} #plurk")
 
         return have_new_plurk
 
