@@ -15,7 +15,10 @@ from telegram import Bot, Update
 TOKEN = "{telegram_token}"
 MY_CHAT_ID = "{your_chat_id}"
 BASE_URL = "https://www.plurk.com"
-plurk_ids = (000000, )
+# use empty tuple () if nothing to check
+plurk_ids = (000000,)
+plurk_response_ids = (0000000000,)
+weibo_ids = (0000000000000000,)
 
 
 def lambda_handler(event, context):
@@ -33,6 +36,15 @@ def lambda_handler(event, context):
                 print("Have new plurks!")
                 for p in e_plurk.new_plurks:
                     send_message(bot, p)
+
+        for pri in plurk_response_ids:
+            for c in check_response(pri):
+                send_message(bot, c)
+
+        for wi in weibo_ids:
+            for w in check_weibo(wi):
+                print("Have new weibo!")
+                send_message(bot, w)
 
         return
 
@@ -62,6 +74,17 @@ def lambda_handler(event, context):
         else:
             send_message(bot, "No new plurk!")
 
+        for pri in plurk_response_ids:
+            for c in check_response(pri):
+                send_message(bot, c)
+        send_message(bot, "Done special_check!")
+        return
+
+    if text.startswith("/weibo"):
+        for wi in weibo_ids:
+            for w in check_weibo(wi):
+                send_message(bot, w)
+        send_message(bot, "Done weibo!")
         return
 
     if text.startswith("/test"):
