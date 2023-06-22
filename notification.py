@@ -166,8 +166,8 @@ def check_response(plurk_id):
     return new_responses
 
 
-def check_weibo():
-    url = "https://m.weibo.cn/api/container/getIndex?containerid=1076033146760504"
+def check_weibo(containerid):
+    url = f"https://m.weibo.cn/api/container/getIndex?containerid={containerid}"
     res = requests.get(url)
     data = res.json()
 
