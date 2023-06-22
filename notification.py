@@ -6,6 +6,7 @@ Plurk 新發噗通知
 
 
 import json
+import re
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -14,7 +15,7 @@ from telegram import Bot, Update
 TOKEN = "{telegram_token}"
 MY_CHAT_ID = "{your_chat_id}"
 BASE_URL = "https://www.plurk.com"
-plurk_ids = [000000]
+plurk_ids = (000000, )
 
 
 def lambda_handler(event, context):
@@ -123,6 +124,52 @@ class Plurk:
         return have_new_plurk
 
 
+def check_response(plurk_id):
+    payload = {"plurk_id": plurk_id, "from_response_id": "0"}
+    r = requests.post("https://www.plurk.com/Responses/get", data=payload)
+
+    new_responses = []
+    responses = r.json().get("responses", [])
+    for res in responses:
+        posted_time_utc = parse_time(res["posted"])
+        now_time_utc = datetime.utcnow()
+
+        if posted_time_utc > now_time_utc - timedelta(minutes=11):
+            post_time = change_timezone_local(posted_time_utc)
+            plurk_content = res["content_raw"].replace("\n", " ")
+
+            new_responses.append(f"{post_time} {plurk_content} #plurk")
+
+    return new_responses
+
+
+def check_weibo():
+    url = "https://m.weibo.cn/api/container/getIndex?containerid=1076033146760504"
+    res = requests.get(url)
+    data = res.json()
+
+    messages = []
+    cards = data.get("data", {}).get("cards", [])
+    for card in cards:
+        mblog = card.get("mblog", {})
+        created_at = mblog.get("created_at")
+        # created_time formate: Tue Jul 12 11:32:02 +0800 2022
+        created_time = datetime.strptime(created_at, "%a %b %d %H:%M:%S %z %Y")
+        created_time_utc = created_time.astimezone(timezone.utc)
+        utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
+
+        if created_time_utc > utc_now - timedelta(minutes=11):
+            text = mblog.get("raw_text")
+            if not text:
+                text = mblog.get("text", "Empty")
+                text = re.sub(r"\<.*?\>", "", text)
+
+            messages.append(f"{created_time} {text} #weibo")
+
+    messages.reverse()
+    return messages
+
+
 def parse_time(time: str) -> datetime:
     """parse original time from plurk
     e.g. 'Sat, 11 Jan 2020 01:14:29 GMT' string to datetime
@@ -139,7 +186,9 @@ def format_time_to_offset(time: datetime) -> str:
 
 def change_timezone_local(time: datetime) -> str:
     """change datetime to local time string (UTC+8)"""
-    local_time = time.replace(tzinfo=timezone.utc).astimezone(tz=timezone(timedelta(hours=8)))
+    local_time = time.replace(tzinfo=timezone.utc).astimezone(
+        tz=timezone(timedelta(hours=8))
+    )
     return local_time.strftime("%Y-%m-%d %H:%M:%S")
 
 
